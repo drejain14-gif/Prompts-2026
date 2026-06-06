@@ -1,0 +1,269 @@
+openapi: 3.1.0
+info:
+  title: SweatJoy API
+  description: Student Mental Wellness Tracker REST API
+  version: 1.0.0
+  contact:
+    name: SweatJoy Engineering
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development
+  - url: https://sweatjoy.app/api
+    description: Production
+
+paths:
+  /mood:
+    get:
+      summary: List mood entries
+      tags: [Mood]
+      responses:
+        "200":
+          description: List of mood entries
+    post:
+      summary: Create mood entry
+      tags: [Mood]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoodEntry"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Validation error
+
+  /journals:
+    get:
+      summary: List/search journals
+      tags: [Journal]
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Journal list
+    post:
+      summary: Create journal entry
+      tags: [Journal]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Journal"
+      responses:
+        "201":
+          description: Created
+
+  /triggers:
+    get:
+      summary: List triggers with analytics
+      tags: [Triggers]
+      responses:
+        "200":
+          description: Triggers and frequency data
+    post:
+      summary: Log a stress trigger
+      tags: [Triggers]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Trigger"
+      responses:
+        "201":
+          description: Created
+
+  /habits:
+    get:
+      summary: List habit logs and streaks
+      tags: [Habits]
+      responses:
+        "200":
+          description: Habit data
+    post:
+      summary: Log habit completion
+      tags: [Habits]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HabitLog"
+      responses:
+        "201":
+          description: Created
+
+  /coach:
+    post:
+      summary: Chat with SweatJoy Coach
+      tags: [AI Coach]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  maxLength: 2000
+      responses:
+        "200":
+          description: Coach response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                  source:
+                    type: string
+                    enum: [openai, fallback]
+
+  /burnout:
+    get:
+      summary: Burnout engine info
+      tags: [Burnout]
+      responses:
+        "200":
+          description: Engine metadata
+    post:
+      summary: Calculate burnout score
+      tags: [Burnout]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BurnoutInput"
+      responses:
+        "200":
+          description: Burnout result
+
+  /wellness:
+    post:
+      summary: Calculate wellness or balance score
+      tags: [Wellness]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [assessment]
+                    stress_level:
+                      type: integer
+                      minimum: 1
+                      maximum: 10
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [balance]
+                    study_hours:
+                      type: number
+                    break_hours:
+                      type: number
+                    sleep_hours:
+                      type: number
+      responses:
+        "200":
+          description: Score result
+
+components:
+  schemas:
+    MoodEntry:
+      type: object
+      required: [mood_score, emotion, sleep_quality, energy_level, anxiety_level, confidence_level]
+      properties:
+        mood_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+        emotion:
+          type: string
+          enum: [happy, calm, motivated, nervous, stressed, overwhelmed, burned_out]
+        sleep_quality:
+          type: integer
+          minimum: 1
+          maximum: 10
+        energy_level:
+          type: integer
+          minimum: 1
+          maximum: 10
+        anxiety_level:
+          type: integer
+          minimum: 1
+          maximum: 10
+        confidence_level:
+          type: integer
+          minimum: 1
+          maximum: 10
+        notes:
+          type: string
+          maxLength: 500
+
+    Journal:
+      type: object
+      required: [prompt, content]
+      properties:
+        prompt:
+          type: string
+        content:
+          type: string
+          maxLength: 5000
+        emoji_reflection:
+          type: string
+        is_draft:
+          type: boolean
+
+    Trigger:
+      type: object
+      required: [category]
+      properties:
+        category:
+          type: string
+          enum: [exam_pressure, mock_test_results, study_backlog, social_media, family_expectations, relationships, sleep_issues, financial_concerns, health_concerns]
+        intensity:
+          type: integer
+          minimum: 1
+          maximum: 10
+
+    HabitLog:
+      type: object
+      required: [habit_type, completed]
+      properties:
+        habit_type:
+          type: string
+          enum: [water, exercise, meditation, sleep, outdoor, study]
+        completed:
+          type: boolean
+        value:
+          type: number
+
+    BurnoutInput:
+      type: object
+      properties:
+        moodTrend:
+          type: array
+          items:
+            type: number
+        anxietyTrend:
+          type: array
+          items:
+            type: number
+        sleepQuality:
+          type: number
+        confidenceScore:
+          type: number
+        studyHours:
+          type: number
+        triggerFrequency:
+          type: integer
