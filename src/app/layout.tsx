@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { ErrorBoundary } from "@/components/error-boundary";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,7 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
         <Toaster position="top-center" richColors />
       </body>
     </html>

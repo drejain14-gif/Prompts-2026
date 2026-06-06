@@ -1,9 +1,11 @@
 import type {
   MoodEntry, Journal, HabitLog, Trigger, BurnoutScore, Achievement,
   NlpSessionLog, WellnessGoal, VoiceCheckInLog, GuardianAlert, GuardianContact,
-  ScheduledCheckInConfig,
+  ScheduledCheckInConfig, StudyBalanceLog,
 } from "@/lib/types/database";
 import { buildDefaultSchedule } from "@/lib/constants/check-in-schedule";
+import { awardXp, type GamificationState } from "@/lib/gamification/award-engine";
+import { calculateBalanceScore } from "@/lib/algorithms/wellness";
 
 const STORAGE_KEY = "sweatjoy_demo_data";
 
@@ -15,6 +17,7 @@ interface DemoData {
     wellness_score: number;
     xp_points: number;
     onboarding_completed: boolean;
+    parent_opt_in: boolean;
   };
   moodEntries: MoodEntry[];
   journals: Journal[];
@@ -28,6 +31,7 @@ interface DemoData {
   guardianAlerts: GuardianAlert[];
   guardianContact: GuardianContact | null;
   checkInSchedule: ScheduledCheckInConfig[];
+  balanceLogs: StudyBalanceLog[];
 }
 
 function getDefaultData(): DemoData {
@@ -57,6 +61,7 @@ function getDefaultData(): DemoData {
       wellness_score: 7.2,
       xp_points: 450,
       onboarding_completed: true,
+      parent_opt_in: true,
     },
     moodEntries,
     journals: [],
@@ -92,7 +97,26 @@ function getDefaultData(): DemoData {
       opt_in_confirmed: true,
     },
     checkInSchedule: buildDefaultSchedule(),
+    balanceLogs: [],
   };
+}
+
+function applyGamification(data: DemoData, action: Parameters<typeof awardXp>[1]): void {
+  const state: GamificationState = {
+    xp_points: data.profile.xp_points,
+    achievements: data.achievements,
+    moodEntries: data.moodEntries,
+    journals: data.journals,
+    habitLogs: data.habitLogs,
+  };
+  const result = awardXp(state, action);
+  data.profile.xp_points = result.totalXp;
+  for (const badge of result.newBadges) {
+    if (!data.achievements.some((a) => a.badge_key === badge.badge_key)) {
+      data.achievements.push(badge);
+      data.profile.xp_points += badge.xp_earned;
+    }
+  }
 }
 
 export function getDemoData(): DemoData {
@@ -114,6 +138,7 @@ export function getDemoData(): DemoData {
     guardianAlerts: parsed.guardianAlerts ?? [],
     guardianContact: parsed.guardianContact ?? defaults.guardianContact,
     checkInSchedule: parsed.checkInSchedule ?? defaults.checkInSchedule,
+    balanceLogs: parsed.balanceLogs ?? [],
   };
 }
 
@@ -131,6 +156,7 @@ export function addMoodEntry(entry: Omit<MoodEntry, "id" | "created_at">): MoodE
     created_at: new Date().toISOString(),
   };
   data.moodEntries = [newEntry, ...data.moodEntries.filter((e) => e.entry_date !== entry.entry_date)];
+  applyGamification(data, "mood_checkin");
   saveDemoData(data);
   return newEntry;
 }
@@ -144,6 +170,7 @@ export function addJournal(journal: Omit<Journal, "id" | "created_at" | "updated
     updated_at: new Date().toISOString(),
   };
   data.journals.unshift(newJournal);
+  if (!journal.is_draft) applyGamification(data, "journal_entry");
   saveDemoData(data);
   return newJournal;
 }
@@ -174,6 +201,7 @@ export function updateHabitLog(log: Omit<HabitLog, "id" | "created_at">): HabitL
       created_at: new Date().toISOString(),
     });
   }
+  if (log.completed) applyGamification(data, "habit_complete");
   saveDemoData(data);
   return existing ?? data.habitLogs[data.habitLogs.length - 1];
 }
@@ -235,4 +263,51 @@ export function updateGuardianContact(contact: GuardianContact): void {
   const data = getDemoData();
   data.guardianContact = contact;
   saveDemoData(data);
+}
+
+export function acknowledgeGuardianAlert(alertId: string): void {
+  const data = getDemoData();
+  const alert = data.guardianAlerts.find((a) => a.id === alertId);
+  if (alert) alert.acknowledged = true;
+  saveDemoData(data);
+}
+
+export function setParentOptIn(optIn: boolean): void {
+  const data = getDemoData();
+  data.profile.parent_opt_in = optIn;
+  saveDemoData(data);
+}
+
+export function addBalanceLog(
+  log: Omit<StudyBalanceLog, "id">
+): StudyBalanceLog {
+  const data = getDemoData();
+  const score = calculateBalanceScore(log.study_hours, log.break_hours, log.sleep_hours);
+  const entry: StudyBalanceLog = {
+    ...log,
+    id: `balance-${Date.now()}`,
+  };
+  data.balanceLogs = [
+    entry,
+    ...data.balanceLogs.filter((b) => b.log_date !== log.log_date),
+  ];
+  saveDemoData(data);
+  return entry;
+}
+
+export function getWeeklyBalanceScores(): { day: string; score: number }[] {
+  const data = getDemoData();
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const result: { day: string; score: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const log = data.balanceLogs.find((b) => b.log_date === dateStr);
+    const score = log
+      ? calculateBalanceScore(log.study_hours, log.break_hours, log.sleep_hours)
+      : 0;
+    result.push({ day: days[d.getDay()], score });
+  }
+  return result;
 }

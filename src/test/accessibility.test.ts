@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { CRISIS_RESOURCES } from "@/lib/constants/crisis-resources";
 import { isCheckInDue, buildDefaultSchedule } from "@/lib/constants/check-in-schedule";
 
 describe("accessibility — check-in schedule constants", () => {
@@ -31,16 +32,14 @@ describe("accessibility — notification timing", () => {
 });
 
 describe("accessibility — crisis resource requirements", () => {
-  const CRISIS_RESOURCES = [
-    { name: "iCall", number: "9152987821" },
-    { name: "Vandrevala Foundation", number: "1860-2662-345" },
-    { name: "Tele-MANAS", number: "14416" },
-  ];
-
   it("includes 24/7 helplines for Indian students", () => {
     expect(CRISIS_RESOURCES.length).toBeGreaterThanOrEqual(3);
     for (const resource of CRISIS_RESOURCES) {
       expect(resource.number).toMatch(/^\d/);
     }
+  });
+
+  it("has Tele-MANAS 24/7 helpline", () => {
+    expect(CRISIS_RESOURCES.some((r) => r.name === "Tele-MANAS")).toBe(true);
   });
 });

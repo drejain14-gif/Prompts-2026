@@ -5,28 +5,57 @@ import { AppHeader } from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getDemoData } from "@/lib/demo-store";
+import { getDemoData, acknowledgeGuardianAlert } from "@/lib/demo-store";
+import { calculateBurnoutScore } from "@/lib/algorithms/burnout";
 import type { GuardianAlert } from "@/lib/types/database";
-import { Shield, AlertTriangle } from "lucide-react";
+import { Shield, AlertTriangle, Heart, TrendingUp } from "lucide-react";
 
-/**
- * Guardian dashboard — view wellness alerts triggered by voice check-in safety filter.
- */
 export default function GuardianPage() {
   const [alerts, setAlerts] = useState<GuardianAlert[]>([]);
   const [studentName, setStudentName] = useState("");
+  const [optIn, setOptIn] = useState(false);
+  const [wellness, setWellness] = useState({ score: 0, moodAvg: 0, burnoutRisk: "low", streak: 0 });
 
-  useEffect(() => {
+  const refresh = () => {
     const data = getDemoData();
     setAlerts(data.guardianAlerts ?? []);
     setStudentName(data.profile.full_name);
-  }, []);
+    setOptIn(data.profile.parent_opt_in ?? false);
+
+    if (data.profile.parent_opt_in) {
+      const moods = data.moodEntries.slice(0, 7);
+      const moodAvg = moods.length
+        ? moods.reduce((s, m) => s + m.mood_score, 0) / moods.length
+        : 0;
+      const burnout = calculateBurnoutScore({
+        moodTrend: moods.map((m) => m.mood_score),
+        anxietyTrend: moods.map((m) => m.anxiety_level),
+        sleepQuality: moods[0]?.sleep_quality ?? 7,
+        confidenceScore: moods[0]?.confidence_level ?? 7,
+        studyHours: 8,
+        triggerFrequency: data.triggers.length,
+      });
+      setWellness({
+        score: data.profile.wellness_score,
+        moodAvg: Math.round(moodAvg * 10) / 10,
+        burnoutRisk: burnout.riskLevel,
+        streak: moods.length,
+      });
+    }
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const handleAcknowledge = (alertId: string) => {
+    acknowledgeGuardianAlert(alertId);
+    refresh();
+  };
 
   return (
     <div>
       <AppHeader
         title="Guardian Dashboard"
-        subtitle="Wellness alerts and student safety notifications"
+        subtitle="Wellness trends, safety alerts, and student monitoring (opt-in required)"
       />
 
       <Card className="mb-6 border-primary/20">
@@ -35,11 +64,34 @@ export default function GuardianPage() {
           <div>
             <p className="font-semibold">Monitoring: {studentName}</p>
             <p className="text-sm text-muted-foreground">
-              Alerts trigger when voice check-ins detect abusive language or life-threatening statements.
+              {optIn
+                ? "Wellness summary shared with your consent. Crisis alerts always enabled."
+                : "Student has not opted in to wellness sharing. Only crisis alerts visible."}
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {optIn && (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Heart, label: "Wellness Score", value: `${wellness.score}/10` },
+            { icon: TrendingUp, label: "7-Day Mood Avg", value: `${wellness.moodAvg}/10` },
+            { icon: Shield, label: "Burnout Risk", value: wellness.burnoutRisk.toUpperCase() },
+            { icon: TrendingUp, label: "Check-ins (7d)", value: String(wellness.streak) },
+          ].map(({ icon: Icon, label, value }) => (
+            <Card key={label}>
+              <CardContent className="flex items-center gap-3 p-4">
+                <Icon className="h-8 w-8 text-primary shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="font-semibold">{value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -68,9 +120,7 @@ export default function GuardianPage() {
                       <Badge variant={alert.severity === "threat_to_life" ? "danger" : "warning"}>
                         {alert.severity === "threat_to_life" ? "CRISIS" : "CONCERN"}
                       </Badge>
-                      {!alert.acknowledged && (
-                        <Badge variant="secondary">New</Badge>
-                      )}
+                      {!alert.acknowledged && <Badge variant="secondary">New</Badge>}
                     </div>
                     <p className="mt-2 text-sm">{alert.message_summary}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -78,7 +128,7 @@ export default function GuardianPage() {
                     </p>
                   </div>
                   {!alert.acknowledged && (
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleAcknowledge(alert.id)}>
                       Acknowledge
                     </Button>
                   )}

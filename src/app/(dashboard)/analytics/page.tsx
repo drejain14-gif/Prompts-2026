@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MoodTrendChart } from "@/components/dashboard/charts";
+import { MoodTrendChart } from "@/components/dashboard/lazy-charts";
 import { getDemoData } from "@/lib/demo-store";
 import { calculateBurnoutScore } from "@/lib/algorithms/burnout";
 import { Progress } from "@/components/ui/progress";

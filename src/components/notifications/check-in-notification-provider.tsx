@@ -64,8 +64,21 @@ export function CheckInNotificationProvider({ children }: CheckInNotificationPro
 
   useEffect(() => {
     checkSchedule();
-    const interval = setInterval(checkSchedule, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        checkSchedule();
+      }
+    }, POLL_INTERVAL_MS);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") checkSchedule();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [checkSchedule]);
 
   const dismiss = useCallback(() => {

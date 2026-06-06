@@ -15,6 +15,7 @@ import { Mic, MicOff, Shield, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { addVoiceCheckIn, addGuardianAlert } from "@/lib/demo-store";
+import { CRISIS_RESOURCES } from "@/lib/constants/crisis-resources";
 
 type CheckInPhase = "intro" | "recording" | "processing" | "complete" | "crisis";
 
@@ -284,15 +285,11 @@ export function VoiceCheckIn() {
                 has been notified as per your settings.
               </p>
               <ul className="space-y-2 text-sm">
-                <li>
-                  <strong>iCall:</strong> 9152987821 (Mon–Sat, 8am–10pm)
-                </li>
-                <li>
-                  <strong>Vandrevala Foundation:</strong> 1860-2662-345 (24/7)
-                </li>
-                <li>
-                  <strong>Tele-MANAS:</strong> 14416 (24/7)
-                </li>
+                {CRISIS_RESOURCES.map((r) => (
+                  <li key={r.number}>
+                    <strong>{r.name}:</strong> {r.number} ({r.hours})
+                  </li>
+                ))}
               </ul>
               {result?.guardianAlertSent && (
                 <Badge variant="danger">Guardian alert sent</Badge>

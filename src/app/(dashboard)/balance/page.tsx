@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { calculateBalanceScore } from "@/lib/algorithms/wellness";
+import { addBalanceLog, getWeeklyBalanceScores } from "@/lib/demo-store";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 
@@ -13,7 +14,11 @@ export default function BalancePage() {
   const [studyHours, setStudyHours] = useState(8);
   const [breakHours, setBreakHours] = useState(2);
   const [sleepHours, setSleepHours] = useState(7);
-  const [saved, setSaved] = useState(false);
+  const [weeklyScores, setWeeklyScores] = useState<{ day: string; score: number }[]>([]);
+
+  useEffect(() => {
+    setWeeklyScores(getWeeklyBalanceScores());
+  }, []);
 
   const balanceScore = calculateBalanceScore(studyHours, breakHours, sleepHours);
 
@@ -24,9 +29,19 @@ export default function BalancePage() {
   if (suggestions.length === 0) suggestions.push("Great balance! Keep maintaining this rhythm.");
 
   const handleSave = () => {
-    setSaved(true);
+    const today = new Date().toISOString().split("T")[0];
+    addBalanceLog({
+      user_id: "demo",
+      study_hours: studyHours,
+      break_hours: breakHours,
+      sleep_hours: sleepHours,
+      log_date: today,
+    });
+    setWeeklyScores(getWeeklyBalanceScores());
     toast.success("Balance log saved!");
   };
+
+  const hasWeeklyData = weeklyScores.some((w) => w.score > 0);
 
   return (
     <div>
@@ -39,23 +54,27 @@ export default function BalancePage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {[
-              { label: "Study Hours", value: studyHours, set: setStudyHours, max: 16 },
-              { label: "Break Hours", value: breakHours, set: setBreakHours, max: 6 },
-              { label: "Sleep Hours", value: sleepHours, set: setSleepHours, max: 12 },
-            ].map(({ label, value, set, max }) => (
+              { label: "Study Hours", value: studyHours, set: setStudyHours, max: 16, id: "study-hours" },
+              { label: "Break Hours", value: breakHours, set: setBreakHours, max: 6, id: "break-hours" },
+              { label: "Sleep Hours", value: sleepHours, set: setSleepHours, max: 12, id: "sleep-hours" },
+            ].map(({ label, value, set, max, id }) => (
               <div key={label} className="space-y-2">
                 <div className="flex justify-between">
-                  <Label>{label}</Label>
+                  <Label htmlFor={id}>{label}</Label>
                   <span className="font-semibold text-primary">{value}h</span>
                 </div>
                 <input
+                  id={id}
                   type="range"
                   min={0}
                   max={max}
                   step={0.5}
                   value={value}
-                  onChange={(e) => { set(Number(e.target.value)); setSaved(false); }}
+                  onChange={(e) => set(Number(e.target.value))}
                   className="w-full accent-primary"
+                  aria-valuemin={0}
+                  aria-valuemax={max}
+                  aria-valuenow={value}
                 />
               </div>
             ))}
@@ -68,19 +87,17 @@ export default function BalancePage() {
             <CardContent className="p-6 text-center">
               <p className="text-sm text-muted-foreground">Balance Score</p>
               <p className="text-5xl font-bold text-primary">{balanceScore}</p>
-              <Progress value={balanceScore} className="mt-4" />
+              <Progress value={balanceScore} className="mt-4" aria-label="Balance score" />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>AI Suggestions</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>AI Suggestions</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {suggestions.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <span className="text-primary">•</span>
+                {suggestions.map((s) => (
+                  <li key={s} className="flex items-start gap-2 text-sm">
+                    <span className="text-primary" aria-hidden="true">•</span>
                     {s}
                   </li>
                 ))}
@@ -88,28 +105,29 @@ export default function BalancePage() {
             </CardContent>
           </Card>
 
-          {saved && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Comparison</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+          <Card>
+            <CardHeader><CardTitle>Weekly Comparison</CardTitle></CardHeader>
+            <CardContent>
+              {!hasWeeklyData ? (
+                <p className="text-sm text-muted-foreground">Save today&apos;s log to start tracking.</p>
+              ) : (
+                <div className="space-y-3" role="img" aria-label="Weekly balance scores">
+                  {weeklyScores.map(({ day, score }) => (
                     <div key={day} className="flex items-center gap-3">
                       <span className="w-8 text-xs text-muted-foreground">{day}</span>
                       <div className="flex-1 h-3 rounded-full bg-secondary">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-wellness-teal to-wellness-purple"
-                          style={{ width: `${60 + i * 5}%` }}
+                          className="h-full rounded-full bg-gradient-to-r from-wellness-teal to-wellness-purple motion-safe:transition-all"
+                          style={{ width: `${score}%` }}
                         />
                       </div>
+                      <span className="w-8 text-xs text-right">{Math.round(score)}</span>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -1,31 +1,24 @@
 import { NextResponse } from "next/server";
 import { coachMessageSchema } from "@/lib/validations/schemas";
+import { buildCoachSystemPrompt } from "@/lib/coach/prompt-builder";
 import OpenAI from "openai";
 
-const SYSTEM_PROMPT = `You are SweatJoy Coach, a compassionate AI wellness assistant for Indian students preparing for competitive exams (NEET, JEE, CUET, CAT, GATE, UPSC, SSC, Board Exams).
-
-Your role:
-- Provide emotional support and motivation
-- Suggest practical stress management techniques
-- Recommend breathing exercises, meditation, sleep tips
-- Be warm, concise, and culturally aware
-- Never provide medical diagnoses
-- Encourage professional help for severe distress
-
-Keep responses under 150 words. Use emojis sparingly.`;
-
-function getFallbackResponse(message: string): string {
+function getFallbackResponse(message: string, context?: { exam_mode?: string }): string {
   const lower = message.toLowerCase();
+  const phaseHint = context?.exam_mode === "exam_week"
+    ? " Exam week is here — focus on staying calm, not cramming."
+    : "";
+
   if (lower.includes("breath") || lower.includes("anxious") || lower.includes("stress")) {
-    return "Let's try box breathing together: Inhale for 4 seconds, hold for 4, exhale for 4, hold for 4. Repeat 4 times. This activates your parasympathetic nervous system and helps calm exam anxiety. You're doing great by reaching out! 🌿";
+    return `Let's try box breathing: inhale 4s, hold 4s, exhale 4s, hold 4s. Repeat 4 times.${phaseHint} You're doing great by reaching out!`;
   }
   if (lower.includes("sleep")) {
-    return "For better sleep before exams: avoid screens 1 hour before bed, keep your room cool, and try a 5-minute body scan meditation. Consistent sleep is your secret weapon for memory retention! 😴";
+    return "For better sleep: avoid screens 1 hour before bed, keep your room cool, try a 5-minute body scan. Sleep is your memory consolidation superpower!";
   }
   if (lower.includes("motivat") || lower.includes("demotivat")) {
-    return "Remember: every topper was once where you are now. Progress isn't linear — bad days don't erase your hard work. Focus on today's small win, whether it's one chapter or one practice question. You've got this! 💪";
+    return "Every topper was once where you are. Progress isn't linear — focus on today's small win. You've got this!";
   }
-  return "Thank you for sharing. Your feelings are valid, especially during intense exam prep. Take a moment to breathe deeply. Would you like a breathing exercise, meditation recommendation, or study break activity? I'm here for you. 🌟";
+  return `Your feelings are valid during exam prep.${phaseHint} Would you like a breathing exercise, meditation, or study break activity?`;
 }
 
 export async function POST(request: Request) {
@@ -40,6 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const systemPrompt = buildCoachSystemPrompt(parsed.data.context);
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (apiKey) {
@@ -47,18 +41,20 @@ export async function POST(request: Request) {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: parsed.data.message },
         ],
         max_tokens: 300,
         temperature: 0.7,
       });
-      const response = completion.choices[0]?.message?.content ?? getFallbackResponse(parsed.data.message);
+      const response =
+        completion.choices[0]?.message?.content ??
+        getFallbackResponse(parsed.data.message, parsed.data.context);
       return NextResponse.json({ response, source: "openai" });
     }
 
     return NextResponse.json({
-      response: getFallbackResponse(parsed.data.message),
+      response: getFallbackResponse(parsed.data.message, parsed.data.context),
       source: "fallback",
     });
   } catch {

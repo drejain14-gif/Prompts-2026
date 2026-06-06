@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MoodTrendChart, MoodHeatmap } from "@/components/dashboard/charts";
+import { MoodTrendChart, MoodHeatmap } from "@/components/dashboard/lazy-charts";
 import { getDemoData } from "@/lib/demo-store";
 import { getExamMode, getExamModeLabel } from "@/lib/utils";
 import { EMOTION_CONFIG } from "@/lib/algorithms/wellness";

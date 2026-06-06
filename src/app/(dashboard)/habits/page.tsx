@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AppHeader } from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProgressRing } from "@/components/dashboard/charts";
+import { ProgressRing } from "@/components/dashboard/lazy-charts";
 import { updateHabitLog, getDemoData } from "@/lib/demo-store";
 import type { HabitType } from "@/lib/types/database";
 import { cn } from "@/lib/utils";

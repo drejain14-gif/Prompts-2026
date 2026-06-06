@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sparkles, Send, Wind, Moon, Heart } from "lucide-react";
+import { getDemoData } from "@/lib/demo-store";
+import { getExamMode } from "@/lib/utils";
+import { TRIGGER_LABELS } from "@/lib/algorithms/wellness";
 
 interface Message {
   role: "user" | "assistant";
@@ -40,10 +43,27 @@ export default function CoachPage() {
     setLoading(true);
 
     try {
+      const demo = getDemoData();
+      const mood = demo.moodEntries[0];
+      const daysUntilExam = Math.ceil(
+        (new Date(demo.profile.target_exam_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          context: {
+            exam_type: demo.profile.exam_type,
+            days_until_exam: daysUntilExam,
+            exam_mode: getExamMode(daysUntilExam),
+            mood_score: mood?.mood_score,
+            emotion: mood?.emotion,
+            anxiety_level: mood?.anxiety_level,
+            wellness_score: demo.profile.wellness_score,
+            recent_triggers: demo.triggers.slice(0, 3).map((t) => TRIGGER_LABELS[t.category]),
+          },
+        }),
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.response }]);

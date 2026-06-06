@@ -63,8 +63,14 @@ export const studyBalanceSchema = z.object({
 export const coachMessageSchema = z.object({
   message: z.string().min(1).max(2000),
   context: z.object({
+    exam_type: z.string().optional(),
+    days_until_exam: z.number().optional(),
+    exam_mode: z.string().optional(),
     mood_score: z.number().optional(),
+    emotion: z.string().optional(),
+    anxiety_level: z.number().optional(),
     recent_triggers: z.array(z.string()).optional(),
+    wellness_score: z.number().optional(),
   }).optional(),
 });
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AppHeader } from "@/components/layout/sidebar";
 import { MoodCheckIn } from "@/components/mood/mood-check-in";
-import { MoodTrendChart } from "@/components/dashboard/charts";
+import { MoodTrendChart } from "@/components/dashboard/lazy-charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { addMoodEntry, getDemoData } from "@/lib/demo-store";
 import type { Emotion } from "@/lib/types/database";

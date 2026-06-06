@@ -10,6 +10,7 @@ import {
   getDemoData,
   updateCheckInSchedule,
   updateGuardianContact,
+  setParentOptIn,
 } from "@/lib/demo-store";
 import type { ScheduledCheckInConfig, GuardianContact } from "@/lib/types/database";
 import { toast } from "sonner";
@@ -17,11 +18,13 @@ import { toast } from "sonner";
 export default function SettingsPage() {
   const [schedule, setSchedule] = useState<ScheduledCheckInConfig[]>([]);
   const [guardian, setGuardian] = useState<GuardianContact | null>(null);
+  const [parentOptIn, setParentOptInState] = useState(false);
 
   useEffect(() => {
     const data = getDemoData();
     setSchedule(data.checkInSchedule);
     setGuardian(data.guardianContact);
+    setParentOptInState(data.profile.parent_opt_in ?? false);
   }, []);
 
   const saveSchedule = () => {
@@ -100,6 +103,33 @@ export default function SettingsPage() {
               </div>
             ))}
             <Button variant="wellness" onClick={saveSchedule}>Save Schedule</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Parent / Guardian Sharing</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Control what wellness data parents can view (crisis alerts always sent)
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="flex items-center justify-between">
+              <span className="text-sm">Share wellness summary with parent/guardian</span>
+              <input
+                type="checkbox"
+                checked={parentOptIn}
+                onChange={(e) => {
+                  setParentOptInState(e.target.checked);
+                  setParentOptIn(e.target.checked);
+                }}
+                className="accent-primary"
+                aria-label="Share wellness summary with parent"
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              When enabled, guardians see mood trends, burnout risk, and wellness score on their dashboard.
+            </p>
           </CardContent>
         </Card>
 
