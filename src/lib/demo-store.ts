@@ -1,4 +1,9 @@
-import type { MoodEntry, Journal, HabitLog, Trigger, BurnoutScore, Achievement, NlpSessionLog, WellnessGoal } from "@/lib/types/database";
+import type {
+  MoodEntry, Journal, HabitLog, Trigger, BurnoutScore, Achievement,
+  NlpSessionLog, WellnessGoal, VoiceCheckInLog, GuardianAlert, GuardianContact,
+  ScheduledCheckInConfig,
+} from "@/lib/types/database";
+import { buildDefaultSchedule } from "@/lib/constants/check-in-schedule";
 
 const STORAGE_KEY = "sweatjoy_demo_data";
 
@@ -19,6 +24,10 @@ interface DemoData {
   achievements: Achievement[];
   nlpSessions: NlpSessionLog[];
   wellness_goals: WellnessGoal[];
+  voiceCheckIns: VoiceCheckInLog[];
+  guardianAlerts: GuardianAlert[];
+  guardianContact: GuardianContact | null;
+  checkInSchedule: ScheduledCheckInConfig[];
 }
 
 function getDefaultData(): DemoData {
@@ -69,6 +78,20 @@ function getDefaultData(): DemoData {
     ],
     nlpSessions: [],
     wellness_goals: ["reduce_anxiety", "manage_stress"] as WellnessGoal[],
+    voiceCheckIns: [],
+    guardianAlerts: [],
+    guardianContact: {
+      id: "guardian-1",
+      student_id: "demo",
+      name: "Parent/Guardian",
+      email: "guardian@example.com",
+      phone: "+91-9876543210",
+      relationship: "Parent",
+      alert_on_abuse: true,
+      alert_on_threat: true,
+      opt_in_confirmed: true,
+    },
+    checkInSchedule: buildDefaultSchedule(),
   };
 }
 
@@ -87,6 +110,10 @@ export function getDemoData(): DemoData {
     ...parsed,
     nlpSessions: parsed.nlpSessions ?? [],
     wellness_goals: parsed.wellness_goals ?? defaults.wellness_goals,
+    voiceCheckIns: parsed.voiceCheckIns ?? [],
+    guardianAlerts: parsed.guardianAlerts ?? [],
+    guardianContact: parsed.guardianContact ?? defaults.guardianContact,
+    checkInSchedule: parsed.checkInSchedule ?? defaults.checkInSchedule,
   };
 }
 
@@ -166,4 +193,46 @@ export function completeNlpSession(
   data.profile.xp_points += session.xp_earned;
   saveDemoData(data);
   return log;
+}
+
+export function addVoiceCheckIn(
+  entry: Omit<VoiceCheckInLog, "id" | "created_at">
+): VoiceCheckInLog {
+  const data = getDemoData();
+  const log: VoiceCheckInLog = {
+    ...entry,
+    id: `voice-${Date.now()}`,
+    created_at: new Date().toISOString(),
+  };
+  data.voiceCheckIns.unshift(log);
+  data.profile.xp_points += 15;
+  saveDemoData(data);
+  return log;
+}
+
+export function addGuardianAlert(
+  alert: Omit<GuardianAlert, "id" | "created_at" | "acknowledged">
+): GuardianAlert {
+  const data = getDemoData();
+  const record: GuardianAlert = {
+    ...alert,
+    id: `alert-${Date.now()}`,
+    acknowledged: false,
+    created_at: new Date().toISOString(),
+  };
+  data.guardianAlerts.unshift(record);
+  saveDemoData(data);
+  return record;
+}
+
+export function updateCheckInSchedule(schedule: ScheduledCheckInConfig[]): void {
+  const data = getDemoData();
+  data.checkInSchedule = schedule;
+  saveDemoData(data);
+}
+
+export function updateGuardianContact(contact: GuardianContact): void {
+  const data = getDemoData();
+  data.guardianContact = contact;
+  saveDemoData(data);
 }

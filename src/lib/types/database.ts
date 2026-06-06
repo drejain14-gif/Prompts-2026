@@ -190,3 +190,51 @@ export interface NlpSessionLog {
   started_at: string;
   completed_at?: string;
 }
+
+export interface VoiceCheckInLog {
+  id: string;
+  user_id: string;
+  transcript_redacted: string;
+  mood_score: number;
+  voice_analysis: {
+    averagePitchHz: number;
+    pitchVariance: number;
+    toneLabel: string;
+    stressIndicator: number;
+  };
+  moderation_severity: "safe" | "abusive" | "threat_to_life";
+  guardian_alert_sent: boolean;
+  check_in_slot?: string;
+  created_at: string;
+}
+
+export interface GuardianContact {
+  id: string;
+  student_id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  relationship: string;
+  alert_on_abuse: boolean;
+  alert_on_threat: boolean;
+  opt_in_confirmed: boolean;
+}
+
+export interface GuardianAlert {
+  id: string;
+  student_id: string;
+  guardian_id: string;
+  severity: "abusive" | "threat_to_life";
+  message_summary: string;
+  acknowledged: boolean;
+  created_at: string;
+}
+
+export interface ScheduledCheckInConfig {
+  slot: "morning" | "afternoon" | "evening";
+  hour: number;
+  minute: number;
+  label: string;
+  sessionType: string;
+  enabled: boolean;
+}

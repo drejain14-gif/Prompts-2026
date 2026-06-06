@@ -12,6 +12,8 @@ import {
   Scale,
   BarChart3,
   Brain,
+  Mic,
+  Shield,
   Settings,
   Sparkles,
   Menu,
@@ -28,6 +30,8 @@ const navItems = [
   { href: "/habits", label: "Habits", icon: Target },
   { href: "/coach", label: "Coach", icon: MessageCircle },
   { href: "/nlp-sessions", label: "NLP Sessions", icon: Brain },
+  { href: "/voice-checkin", label: "Voice Check-In", icon: Mic },
+  { href: "/guardian", label: "Guardian", icon: Shield },
   { href: "/balance", label: "Balance", icon: Scale },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];

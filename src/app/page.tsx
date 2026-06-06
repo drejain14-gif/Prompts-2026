@@ -53,10 +53,10 @@ export default function WelcomePage() {
           <h2 className="mb-10 text-center text-2xl font-bold">Everything you need to thrive</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Heart, title: "Daily Mood Tracking", desc: "Check in with yourself in 30 seconds" },
-              { icon: Brain, title: "AI Wellness Coach", desc: "Personalized support from SweatJoy Coach" },
-              { icon: Target, title: "Habit Building", desc: "Streaks, progress rings, and gamification" },
-              { icon: Shield, title: "Burnout Detection", desc: "Early warnings before you crash" },
+              { icon: Heart, title: "Voice Mood Check-In", desc: "Scheduled voice check-ins — no typing, pitch & tone analysis" },
+              { icon: Brain, title: "AI Wellness Coach", desc: "Personalized NLP sessions based on mood, goals & triggers" },
+              { icon: Shield, title: "Guardian Safety Alerts", desc: "Auto-alerts parents on crisis language detection" },
+              { icon: Target, title: "Burnout Prevention", desc: "Early detection for NEET, JEE, CUET & competitive exams" },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
